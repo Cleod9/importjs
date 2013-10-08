@@ -10,7 +10,7 @@ I've included a sample script called *import-examples.js* that demonstrates a si
 
 Enjoy!
 
-P.S. This library also works great with [OOPS.js](https://github.com/Cleod9/JavaScript/tree/master/oopsjs "OOPS.js"), give it a shot!
+P.S. This library also works great with [OOPS.js](https://github.com/Cleod9/oopsjs "OOPS.js"), give it a shot!
 
 ## \*Disclaimer\*##
 There seems to be an ongoing debate on the internet about how you should and shouldn't organize your JavaScript files, since it's apparently bad practice to load many external files on page load due to the increase of server requests. But how you organize your code is your responsibility, and I created ImportJS to be as flexible as possible in that regard. Naturally you can minify and consolidate all of your code, and still use ImportJS's packaging features so I don't see this as a problem. In this text I will suggest to you a means of organizing your code using this system, which might differ from the traditional web programming norm. Feel free to mold these techniques into your own if need be (or fork it and develop your own version!)
@@ -172,7 +172,7 @@ var MyPackage2 = MyImports.MyPackage2;
 var MyPackage3 = MyImports.MyPackage3;
 ```
 
-## Usage With [OOPS.js](https://github.com/Cleod9/JavaScript/tree/master/oopsjs "OOPS.js") ##
+## Usage With [OOPS.js](https://github.com/Cleod9/oopsjs "OOPS.js") ##
 
 I designed ImportJS with OOPS.js functionality in mind, and when you combine the two you have something that looks awfully close an ActionScript workflow. Check out an adaption of the above examples using OOPS.js:
 
