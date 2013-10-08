@@ -1,0 +1,1 @@
+/* A pretend JavaScript Library for lib load testing */
