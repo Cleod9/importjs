@@ -149,9 +149,9 @@ Importing a package is synonymous to unpacking it using `unpack()`. Packages are
 The standard way to import:
 ```javascript
 //Tip: Use same variable name as the class name at the end of the package for easy-reading
-var MyPackage1 = ImportJS.import('com.code.MyPackage1');
-var MyPackage2 = ImportJS.import('com.code.MyPackage2');
-var MyPackage3 = ImportJS.import('com.code.MyPackage3');
+var MyPackage1 = ImportJS.unpack('com.code.MyPackage1');
+var MyPackage2 = ImportJS.unpack('com.code.MyPackage2');
+var MyPackage3 = ImportJS.unpack('com.code.MyPackage3');
 ```
 
 #### Import by Direct Reference ####
@@ -166,7 +166,7 @@ var MyPackage3 = ImportJS.pkgs.com.code.MyPackage3;
 #### Import Shorthand ####
 Create a temporary variable to create a "shortcut" to your packages:
 ```javascript
-var MyImports = ImportJS.import('com.code');
+var MyImports = ImportJS.unpack('com.code');
 var MyPackage1 = MyImports.MyPackage1;
 var MyPackage2 = MyImports.MyPackage2;
 var MyPackage3 = MyImports.MyPackage3;
