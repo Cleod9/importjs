@@ -1,35 +1,30 @@
 /*******************************
-	ImportJS Version 1.0.0
+	ImportJS Version 1.0.1
 	
     A basic package-structuring import system for JavaScript Objects.
 	
-	The MIT License (MIT)
+    Copyright (c) 2013 Greg McLeod  (Email: cleod9{at}gmail.com)
 
-	Copyright (c) 2013 Greg McLeod <cleod9{at}gmail.com>
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-	The above copyright notice and this permission notice shall be included in
-	all copies or substantial portions of the Software.
-
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-	THE SOFTWARE.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	
+	It is requested that you maintain all or part of this copyright notice even in the minified version.
 *******************************/
 var ImportJS = {
 	pkgs: {}, //Object used to create package structure
 	uncompiled: [], //Track uncompiled classes
 	compiled: [], //Track compiled classes
-	settings: { debug: false, delimiter: '.' },
+	settings: { debug: false, delimiter: '.', node_flag: false },
 	pack: function(id, cls, uncompiled) {
 		//Error check
 		if(typeof id != 'string')
@@ -153,8 +148,37 @@ var ImportJS = {
 			if(typeof settings.ready == 'function')
 				settings.ready();
 		}
-
+		
 		var loadScript = function(filePath, clsPath) {
+			//Specific handling for node.js
+			if(ImportJS.settings.node_flag) {
+				if(!fs)
+					return; //Safety check
+				try
+				{
+					var source = fs.readFileSync(filePath).toString();
+					eval(source);
+					if(clsPath && settings.strict) {
+						if(ImportJS.compiled.indexOf(clsPath) < 0 && ImportJS.uncompiled.indexOf(clsPath) < 0)
+							throw new Error("Import js Error: Invalid or missing package definition for " + clsPath + " (using strict)");
+					}
+					loadedFiles.push(filePath);
+					if(loadedFiles.length == filesArr.length + libsArr.length) {
+						if(settings.autocompile) {
+							ImportJS.compile();
+						}
+						if(typeof settings.ready == 'function')
+							settings.ready(loadedFiles);
+					}
+				} catch(e)
+				{
+					console.log(e);
+					erroredFiles.push(filePath);
+					if(typeof settings.error == 'function')
+						settings.error(erroredFiles);
+				}
+				return;
+			}
 			var done = false;
 			var head = document.getElementsByTagName('head')[0];
 			var script = document.createElement('script');
