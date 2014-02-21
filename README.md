@@ -295,6 +295,21 @@ ImportJS.preload({
 
 ## Version History ##
 
+**1.2.0**
+
+-Extracted node-specific identifiers to improve linting
+-Slight syntax adjustments for even better linting
+-Node.js version now loads the external files via require()
+
+**1.1.0**
+
+-JSHint cleanup and syncing versioning with node-importjs
+-Removed Node references for JSHint (this library is now independent from its Node counterpart)
+
+**1.0.1**
+
+-Modified for Node.js compatibility
+
 **1.0.0**
 
 -Initial release
