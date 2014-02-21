@@ -295,6 +295,10 @@ ImportJS.preload({
 
 ## Version History ##
 
+**1.3.0**
+
+-Re-implemented the method of loading modules as it did not properly support a single shared package store in 1.2.0 (Node.js only)
+
 **1.2.0**
 
 -Extracted node-specific identifiers to improve linting

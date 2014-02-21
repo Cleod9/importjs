@@ -34,12 +34,12 @@ var ImportJS = {
 	uncompiled: [], //Track uncompiled classes
 	compiled: [], //Track compiled classes
 	settings: { debug: false, delimiter: '.' },
-	pack: function(id, cls, uncompiled) {
+	pack: function(id, cls, compiled) {
 		//Error check
 		if (typeof id != 'string')
-			throw new Error('ImportJS Error: Provided package ID must be a string.');
+			throw new Error("ImportJS Error: Provided package ID must be a string.");
 		if (typeof cls != 'object' && typeof cls != 'function')
-			throw new Error('ImportJS Error: Provided class was not an Object or Function.');
+			throw new Error("ImportJS Error: Provided class was not an Object or Function.");
 
 		//Split the path by delimiter
 		var path = id.split(ImportJS.settings.delimiter);
@@ -50,12 +50,12 @@ var ImportJS = {
 					if (typeof node[list[0]] != 'undefined')
 						throw new Error("ImportJS Error: Package " + id + " already exists.");
 					else {
-						if (uncompiled === false) {
+						if (compiled === false) {
 							ImportJS.uncompiled.push(id);
 							node[list[0]] = cls; //Stores the class reference without compiling
 						} else {
 							ImportJS.compiled.push(id);
-							node[list[0]] = cls(); //Stores the class reference after compiling
+							node[list[0]] = cls(ImportJS); //Stores the class reference after compiling
 						}
 					}
 				} else {
@@ -72,17 +72,17 @@ var ImportJS = {
 	{
 		//Error check
 		if (typeof id != 'string')
-			throw new Error('ImportJS Error: Provided package ID must be a string.');
+			throw new Error("ImportJS Error: Provided package ID must be a string.");
 		//Split the path by delimiter
 		var path = id.split(ImportJS.settings.delimiter);
 		if (path.length > 0) {
 			var fetchPackage = function(node, list) {
 				if (typeof node[list[0]] === 'undefined')
-					throw new Error('ImportJS Error: Package ID ' + id + ' does not exist.');
+					throw new Error("ImportJS Error: Package ID " + id + " does not exist.");
 				if (list.length === 1) {
 					//Compile the node if needed
 					if (ImportJS.uncompiled.indexOf(id) >= 0) {
-						var args = node[list[0]](); 
+						var args = node[list[0]](ImportJS); 
 						ImportJS.uncompiled.splice(ImportJS.uncompiled.indexOf(id), 1);
 						ImportJS.compiled.push(id);
 						node[list[0]] = args[0]; //Inject proper class reference before unpacking
@@ -180,20 +180,20 @@ var ImportJS = {
 							throw new Error("ImportJS Error: Invalid or missing package definition for " + clsPath + " (using strict)");
 					}
 					loadedFiles.push(filePath);
-					if (loadedFiles.length === filesArr.length + libsArr.length) {
-						if (settings.autocompile) {
-							ImportJS.compile();
-						}
-						if (typeof settings.ready === 'function')
-							settings.ready(loadedFiles);
-					}
 				} catch(e)
 				{
 					if (ImportJS.settings.debug)
-						console.log(e);
+						console.log(e.stack);
 					erroredFiles.push(filePath);
 					if (typeof settings.error === 'function')
 						settings.error(erroredFiles);
+				}
+				if (loadedFiles.length === filesArr.length + libsArr.length) {
+					if (settings.autocompile) {
+						ImportJS.compile();
+					}
+					if (typeof settings.ready === 'function')
+						settings.ready(loadedFiles);
 				}
 				return;
 			}
@@ -231,12 +231,12 @@ var ImportJS = {
 					if (typeof settings.error === 'function')
 						settings.error(erroredFiles);
 					if (ImportJS.settings.debug)
-						console.log('ImportJS Error: Could not preload the following files: [' + erroredFiles.join(', ') + ']');
+						console.log("ImportJS Error: Could not preload the following files: [" + erroredFiles.join(", ") + "]");
 				}
 			};
 			timeout = setTimeout(function() { 
 				if (ImportJS.settings.debug)
-					console.log('ImportJS Error: Timed out on file: ' + filePath);
+					console.log("ImportJS Error: Timed out on file: " + filePath);
 				errorFunc();
 			}, settings.timeout);
 			script.onreadystatechange = function () {
@@ -290,7 +290,7 @@ var ImportJS = {
 			fail = function(arr) {
 				erroredFiles.push(arr[0]); //Record that the file errored
 				if (ImportJS.settings.debug)
-					console.log('ImportJS Error: Could not preload the following files: [' + arr.join(', ') + ']');
+					console.log("ImportJS Error: Could not preload the following files: [" + arr.join(", ") + "]");
 				if (typeof settings.error === 'function')
 					settings.error(erroredFiles);
 			};
