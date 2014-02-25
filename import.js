@@ -1,5 +1,5 @@
 /*******************************
-	ImportJS Version 1.2.0
+	ImportJS Version 1.4.0
 	
     A basic package-structuring import system for JavaScript Objects.
 	
@@ -55,7 +55,7 @@ var ImportJS = {
 							node[list[0]] = cls; //Stores the class reference without compiling
 						} else {
 							ImportJS.compiled.push(id);
-							node[list[0]] = cls(ImportJS); //Stores the class reference after compiling
+							node[list[0]] = cls(); //Stores the class reference after compiling
 						}
 					}
 				} else {
@@ -82,7 +82,7 @@ var ImportJS = {
 				if (list.length === 1) {
 					//Compile the node if needed
 					if (ImportJS.uncompiled.indexOf(id) >= 0) {
-						var args = node[list[0]](ImportJS); 
+						var args = node[list[0]](); 
 						ImportJS.uncompiled.splice(ImportJS.uncompiled.indexOf(id), 1);
 						ImportJS.compiled.push(id);
 						node[list[0]] = args[0]; //Inject proper class reference before unpacking
@@ -172,7 +172,6 @@ var ImportJS = {
 					
 					//Require the source and pack it into ImportJS
 					var source = require(filePath);
-					ImportJS.pack.apply(this, source);
 					
 					//Throw error in strict mode if class name doesn't match the definition inside the file
 					if (clsPath && settings.strict) {
