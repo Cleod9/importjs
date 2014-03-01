@@ -1,5 +1,5 @@
 /*******************************
-	ImportJS Version 1.4.0
+	ImportJS Version 2.0.0
 	
     A basic package-structuring import system for JavaScript Objects.
 	
@@ -34,12 +34,12 @@ var ImportJS = {
 	uncompiled: [], //Track uncompiled classes
 	compiled: [], //Track compiled classes
 	settings: { debug: false, delimiter: '.' },
-	pack: function(id, cls, compiled) {
+	pack: function(id, cls) {
 		//Error check
 		if (typeof id != 'string')
 			throw new Error("ImportJS Error: Provided package ID must be a string.");
-		if (typeof cls != 'object' && typeof cls != 'function')
-			throw new Error("ImportJS Error: Provided class was not an Object or Function.");
+		if (typeof cls != 'function')
+			throw new Error("ImportJS Error: pack() expects a function as its second argument.");
 
 		//Split the path by delimiter
 		var path = id.split(ImportJS.settings.delimiter);
@@ -50,13 +50,8 @@ var ImportJS = {
 					if (typeof node[list[0]] != 'undefined')
 						throw new Error("ImportJS Error: Package " + id + " already exists.");
 					else {
-						if (compiled === false) {
-							ImportJS.uncompiled.push(id);
-							node[list[0]] = cls; //Stores the class reference without compiling
-						} else {
-							ImportJS.compiled.push(id);
-							node[list[0]] = cls(); //Stores the class reference after compiling
-						}
+						ImportJS.uncompiled.push(id);
+						node[list[0]] = cls; //Stores the class reference without compiling
 					}
 				} else {
 					if (typeof node[list[0]] === 'undefined')
@@ -81,13 +76,22 @@ var ImportJS = {
 					throw new Error("ImportJS Error: Package ID " + id + " does not exist.");
 				if (list.length === 1) {
 					//Compile the node if needed
-					if (ImportJS.uncompiled.indexOf(id) >= 0) {
-						var args = node[list[0]](); 
-						ImportJS.uncompiled.splice(ImportJS.uncompiled.indexOf(id), 1);
+					var index = ImportJS.uncompiled.indexOf(id);
+					if (index >= 0) {
+						//Declare a new module
+						var module = { exports: {}, postCompile: null };
+						//Initialize the package
+						node[list[0]](module, module.exports);
+						//Move from uncompiled to compiled list
+						ImportJS.uncompiled.splice(index, 1);
 						ImportJS.compiled.push(id);
-						node[list[0]] = args[0]; //Inject proper class reference before unpacking
-						args[1](); //Now safe to build dependencies
+						//Replace the pre-compiled version of the code with the module's exports
+						node[list[0]] = module.exports; 
+						//Now safe to build remaining dependencies
+						if(module.postCompile)
+							module.postCompile();
 					}
+					//Returns the node
 					return node[list[0]];
 				}
 				else
@@ -95,7 +99,7 @@ var ImportJS = {
 			};
 			return fetchPackage(ImportJS.pkgs, path);
 		} else
-			throw new Error("Package.js Error: Invalid package ID.");
+			throw new Error("ImportJS Error: Invalid package ID.");
 	},
 	compile: function() {
 		while(ImportJS.uncompiled.length > 0) {
@@ -109,7 +113,7 @@ var ImportJS = {
 		var require = ImportJS.settings.require || null;
 		var settings = {
 			baseUrl: params.baseUrl || '', //Base path for the preload
-			files: params.files || [], //Object or Array of file paths. Use relative to the baseUrl, recommended not to use parent directories ('..')
+			packages: params.packages || [], //Object or Array of file paths. Use relative to the baseUrl, recommended not to use parent directories ('..')
 			ready: params.ready || null,  //Ready callback
 			error: params.error || null, //Error callback
 			removeTags: (params.removeTags === false) ? false : true, //Remove generated from head as they are loaded
@@ -126,7 +130,7 @@ var ImportJS = {
 			settings.baseUrl = settings.baseUrl.substr(0, settings.baseUrl.length - 1);
 
 		var i;
-		var filesArr = (typeof settings.files.length === 'number') ? settings.files : []; //User may provide array or object
+		var filesArr = (typeof settings.packages.length === 'number') ? settings.packages : []; //User may provide array or object
 		var libsArr = settings.libs;
 		var packageArr = [];
 		var loadedFiles = [];
@@ -145,11 +149,11 @@ var ImportJS = {
 		};
 
 		if (filesArr.length === 0) {
-			objToPath(settings.files, settings.baseUrl, '');
+			objToPath(settings.packages, settings.baseUrl, '');
 		} else {
 			//File list was provided, attempt to determine class paths if possible
-			for(i = 0; i < settings.files.length; i++) {
-				var clsPath = settings.files[i].split('/').join(ImportJS.settings.delimiter);
+			for(i = 0; i < settings.packages.length; i++) {
+				var clsPath = settings.packages[i].split('/').join(ImportJS.settings.delimiter);
 				clsPath = clsPath.substr(0, clsPath.length - 3);
 				packageArr.push(clsPath);
 			}
@@ -267,7 +271,7 @@ var ImportJS = {
 					strict: false,
 					timeout: settings.timeout,
 					autocompile: false,
-					files: [file], //Only pass in the one file provided
+					packages: [file], //Only pass in the one file provided
 					ready: success,
 					error: fail
 				});

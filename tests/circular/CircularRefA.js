@@ -1,8 +1,7 @@
-ImportJS.pack('tests.circular.CircularRefA', function() {
-	//Circular reference test
+ImportJS.pack('tests.circular.CircularRefA', function(module) {
+	//Circular reference test, we will unpack at the bottom of the code instead of the top
 	var CircularRefB;
 
-	//Note: You could also just return the function, however it's easier for the class to statically reference itself within this way
 	function CircularRefA() {
 		/* Definition here */
 		
@@ -10,15 +9,17 @@ ImportJS.pack('tests.circular.CircularRefA', function() {
 			return "I am CircularRefA";
 		}
 	}
-	//Set up array with [0] being a reference to the class definition, and [1] a function that ImportJS will call when ImportJS.compile() is called
-	return [CircularRefA, function() { 
+	
+	//We can utilize CircularRefB since it gets hoisted up later
+	CircularRefA.prototype.getCircRefB = function() {
+		var circRefB = new CircularRefB();
+		return circRefB.toString();
+	}
+	
+	//Expose CircularRefA and set up postCompile() to hoist up the reference to CircularRefB
+	module.exports = CircularRefA, 
+	module.postCompile = function() { 
 		//Import all the items you want below
 		CircularRefB = ImportJS.unpack('tests.circular.CircularRefB');
-
-		//Because the unpacking was delayed, we can properly utilize CircularRefB
-		CircularRefB.prototype.getCircRefA = function() {
-			var circRefA = new CircularRefA();
-			return circRefA.toString();
-		}
-	}];
-}, false); //Pass a false parameter for uncompiled packages
+	}
+});
