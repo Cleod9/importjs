@@ -310,6 +310,10 @@ ImportJS.preload({
 
 ## Version History ##
 
+**2.0.1**
+
+-Fixed obscure bug with package IDs that would occur if you had dependencies that required an immediate unpack()
+
 **2.0.0**
 
 -Introduced a new programming model that merges Node.js module style with ActionScript/Java-style packages.

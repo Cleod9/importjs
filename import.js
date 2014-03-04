@@ -1,5 +1,5 @@
 /*******************************
-	ImportJS Version 2.0.0
+	ImportJS Version 2.0.1
 	
     A basic package-structuring import system for JavaScript Objects.
 	
@@ -75,15 +75,14 @@ var ImportJS = {
 				if (typeof node[list[0]] === 'undefined')
 					throw new Error("ImportJS Error: Package ID " + id + " does not exist.");
 				if (list.length === 1) {
-					//Compile the node if needed
-					var index = ImportJS.uncompiled.indexOf(id);
-					if (index >= 0) {
+					//Compile the node if needed (DO NOT save the id index to a var to try and save performance, it is subject to change)
+					if (ImportJS.uncompiled.indexOf(id) >= 0) {
 						//Declare a new module
 						var module = { exports: {}, postCompile: null };
 						//Initialize the package
 						node[list[0]](module, module.exports);
 						//Move from uncompiled to compiled list
-						ImportJS.uncompiled.splice(index, 1);
+						ImportJS.uncompiled.splice(ImportJS.uncompiled.indexOf(id), 1);
 						ImportJS.compiled.push(id);
 						//Replace the pre-compiled version of the code with the module's exports
 						node[list[0]] = module.exports; 
