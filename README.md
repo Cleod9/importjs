@@ -238,7 +238,7 @@ ImportJS.pack('com.MyProject.Parent', function(module) {
 	//Class definition
 	var Parent = OOPS.extend({
 		toString: function() {
-			return "I am child!";
+			return "I am parent!";
 		},
 		printDependency: function() {
 			var dep = new SomeOtherDependency();
@@ -309,6 +309,10 @@ ImportJS.preload({
 ```
 
 ## Version History ##
+
+**2.0.2**
+
+-Readme typo
 
 **2.0.1**
 

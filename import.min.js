@@ -1,5 +1,5 @@
 /*******************************
-	ImportJS Version 2.0.1
+	ImportJS Version 2.0.2
 	
     A basic package-structuring import system for JavaScript Objects.
 	
