@@ -1,6 +1,6 @@
-ImportJS.pack('tests.inheritance.Child', function(module) {
+ImportJS.pack('inheritance.Child', function(module) {
 	//Child object test (Unpacking Parent will force it to compile immediately)
-	var Parent = ImportJS.unpack('tests.inheritance.Parent');
+	var Parent = ImportJS.unpack('inheritance.Parent');
 	
 	function Child() { }
 

@@ -1,4 +1,4 @@
-ImportJS.pack('tests.Simple', function(module) {
+ImportJS.pack('Simple', function(module) {
 	//Basic JavaScript "class" with no dependencies
 	
 	//Note: You could also just immediately set module.exports to this function

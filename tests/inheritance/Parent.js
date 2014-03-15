@@ -1,4 +1,4 @@
-ImportJS.pack('tests.inheritance.Parent', function(module) {
+ImportJS.pack('inheritance.Parent', function(module) {
 	//Parent object test
 	function Parent() {
 		this.sharedValue = 42;

@@ -1,4 +1,4 @@
-ImportJS.pack('tests.circular.CircularRefB', function(module) {
+ImportJS.pack('circular.CircularRefB', function(module) {
 	//Circular reference test, we will unpack at the bottom of the code instead of the top
 	var CircularRefA;
 	
@@ -20,6 +20,6 @@ ImportJS.pack('tests.circular.CircularRefB', function(module) {
 	module.exports = CircularRefB, 
 	module.postCompile = function() {
 		//Import all the items you want below
-		CircularRefA = ImportJS.unpack('tests.circular.CircularRefA');
+		CircularRefA = ImportJS.unpack('circular.CircularRefA');
 	}
 });
