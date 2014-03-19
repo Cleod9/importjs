@@ -3,14 +3,18 @@ ImportJS.pack('Main', function(module) {
     document.getElementById('output').innerHTML += str.split('\n').join('<br />') + "<br />";
   }
 
+  //Internal Project dependencies
 	var Parent = this.import('inheritance.Parent');
 	var Child = this.import('inheritance.Child');
 	var CircularRefA = this.import('circular.CircularRefA');
 	var CircularRefB = this.import('circular.CircularRefB');
 	var Simple = this.import('Simple');
+
+  //External Plugins
 	var Backbone = this.plugin('backbone');
+	var $ = this.plugin('jquery');
 	
-	//Note: You could also just immediately set module.exports to this function
+	//Note: You could also just immediately set module.exports to this function, doesn't matter when it gets set
 	var Main = function () {
 		/* Definition here */
 		print('Created Main')
@@ -22,7 +26,9 @@ ImportJS.pack('Main', function(module) {
 		var myCircRefA = new CircularRefA();
 		var myCircRefB = new CircularRefB();
 		var mySimpleClass = new Simple();
+
 		print("\n<b>Begin preloaded test...</b>\n");
+    
 		print("Value of myParentClass.foo() = " + myParentClass.foo() + "\n");
 		print("Value of myChildClass.foo() = " + myChildClass.foo() + "\n");
 		print("Value of myParentClass.sharedValue = " + myParentClass.sharedValue + "\n");
@@ -34,9 +40,9 @@ ImportJS.pack('Main', function(module) {
 		print("Value of mySimpleClass.toString() = " + mySimpleClass.toString() + "\n");
 		
 
-		print("Backbone: " + Backbone.toString());
-		print("Underscore: " + Backbone._.toString());
-		print("Embedded Backbone: " + Backbone._.Backbone.toString());
+		print("Backbone: " + Backbone.VERSION);
+		print("Underscore: " + Backbone._.VERSION + " (Backbone's embedded version of it)");
+		print("jQuery version: " + $.fn.jquery);
 	};
 	
 	//This package will return Simple when unpacked

@@ -1,9 +1,7 @@
-ImportJS.pack('backbone', function(module) {
+ImportJS.pack('backbone', function(module, exports) {
 	var _ = this.plugin('underscore');
 
-	//This package will return Simple when unpacked
-	module.exports.toString = function () {
-		return 'Backbone version 1';
-	};
-	module.exports._ = _;
+  var Backbone = { VERSION: '1.1.2', _: _ };
+	//Fake version of Backbone, we'll just expose a version number
+	module.exports = Backbone;
 });

@@ -1,8 +1,6 @@
-ImportJS.pack('underscore', function(module) {
-	var Backbone = this.plugin('backbone');
-	//This package will return Simple when unpacked
-	module.exports.toString = function () {
-		return 'Underscore version 1';
-	}
-	module.exports.Backbone = Backbone;
+ImportJS.pack('underscore', function(module, exports) {
+  //Fake version of Underscore, we'll just expose a version number
+  var _ = { VERSION: '1.6.0' };
+
+  module.exports = _;
 });

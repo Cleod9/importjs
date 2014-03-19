@@ -12,10 +12,16 @@ var ImportJS = (function () {
       packages: [], //A list of dependency IDs (for convenience)
       plugins: [] //A list of dependency plugin IDs (for convenience)
     };
+
+    //ImportJS root reference will be overridden for each plugin, so we track the original references here
+    this._contextStack = [];
+
+    //Temporarily holds onto newly added packages so that we can parse their dependencies
+    this._packBuffer = [];
   };
 
   //Set up instance variables first
-  ImportJSBase.prototype = { _settings: null, _map: null, _dependencies: null, _packBuffer: null, _main: null, _proxy: null };
+  ImportJSBase.prototype = { _settings: null, _map: null, _dependencies: null, _main: null, _proxy: null, _contextStack: null, _packBuffer: null };
 
   //Helper method for parsing the source text dependencies
   var _grabDependencies = function (instance, sourceText) {
@@ -43,16 +49,12 @@ var ImportJS = (function () {
     }
   };
 
-
-  var _contextStack = []; //ImportJS root reference will be overridden for each plugin, so we track the original references here
-  var _packBuffer = []; //Temporarily holds onto newly added packages so that we can parse their dependencies
-
   //Parses the dependencies of all packages in the buffer and clears out the buffer
-  var _flushPackBuffer = function () {
-    while (_packBuffer.length > 0) {
+  ImportJSBase.prototype._flushPackBuffer = function () {
+    while (this._packBuffer.length > 0) {
       //Parse the plugin/package dependencies from the source text
-      _grabDependencies(_packBuffer[0].instance, _packBuffer[0].src.toString());
-      _packBuffer.splice(0, 1);
+      _grabDependencies(this._packBuffer[0].instance, this._packBuffer[0].src.toString());
+      this._packBuffer.splice(0, 1);
     }
   };
 
@@ -73,7 +75,7 @@ var ImportJS = (function () {
     if (!this._map.packages[id]) {
       this._dependencies.packages.push(id); //Consider this own package a dependency for the ImportJSBase instance
       this._map.packages[id] = { instance: this, src: cls, cache: null }; //Create a reference in the map for the package
-      _packBuffer.push(this._map.packages[id]); //Push this module into the package buffer to be parsed and flushed later
+      this._packBuffer.push(this._map.packages[id]); //Push this module into the package buffer to be parsed and flushed later
     }
   };
 
@@ -91,14 +93,18 @@ var ImportJS = (function () {
     } else if (pkg.cache) {
       return pkg.cache.exports; //Already compiled
     } else {
+      var bound = { 
+        import: function (id) { return self.unpack.call(self, id); },
+        plugin: function (id) { return self.plugin.call(self, id); } 
+      };
       //Create an empty module to populate;
-      pkg.cache = { exports: function() {}, postCompile: null };
+      pkg.cache = { exports: {}, postCompile: null };
       //Compile the module and store inside the cache
-      pkg.src.call({ import: function (id) { return self.unpack.call(self, id); }, plugin: function (id) { return self.plugin.call(self, id); } }, pkg.cache, pkg.cache.exports); // i.e. module: { exports: function() {} }
+      pkg.src.call(bound, pkg.cache, pkg.cache.exports); // i.e. module: { exports: function() {} }
 
       //Run post-compilation func
       if(pkg.cache.postCompile)
-        pkg.cache.postCompile();
+        pkg.cache.postCompile.call(bound);
 
       //Return exports
       return pkg.cache.exports;
@@ -122,9 +128,9 @@ var ImportJS = (function () {
   };
   ImportJSBase.prototype.preload = function (params) {
     if (typeof params != 'object')
-      throw new Error("ImportJS Error: No parameters supplied.");
+      throw new Error("ImportJS Error: No options object supplied.");
     
-    var settings = {
+    var options = {
       require: params.require || null,
       baseUrl: params.baseUrl || '', //Base path for the preload
       packages: params.packages || [], //Object or Array of file paths. Use relative to the baseUrl, recommended not to use parent directories ('..')
@@ -140,18 +146,18 @@ var ImportJS = (function () {
     };
     
     //Fix path if needed
-    if (settings.baseUrl === './' || settings.baseUrl === '') {
-      settings.baseUrl = '.'; //Force dot character for relative pathing
+    if (options.baseUrl === './' || options.baseUrl === '') {
+      options.baseUrl = '.'; //Force dot character for relative pathing
     }
-    if (settings.baseUrl.lastIndexOf('/') === settings.baseUrl.length - 1) {
-      settings.baseUrl = settings.baseUrl.substr(0, settings.baseUrl.length - 1); //Fix trailing slash
+    if (options.baseUrl.lastIndexOf('/') === options.baseUrl.length - 1) {
+      options.baseUrl = options.baseUrl.substr(0, options.baseUrl.length - 1); //Fix trailing slash
     }
 
     var i;
     var self = this;
-    var filesArr = (typeof settings.packages.length === 'number') ? settings.packages : []; //User may provide array or object
+    var filesArr = (typeof options.packages.length === 'number') ? options.packages : []; //User may provide array or object
     var dependencyHash = {}; //Hash to prevent loading the same parsed dependency twice
-    var libsArr = settings.libs;
+    var libsArr = options.libs;
     var packageArr = [];
     var loadedFiles = [];
     var erroredFiles = [];
@@ -188,22 +194,22 @@ var ImportJS = (function () {
           else
             throw new Error("ImportJS Error: Paths can only contain Objects and String values.");
         }
-      })(settings.packages, settings.baseUrl, '');
+      })(options.packages, options.baseUrl, '');
     } else {
       //Array was provided, simply loop through package list
-      for(i = 0; i < settings.packages.length; i++) {
-        filesArr.push(settings.baseUrl + '/' + settings.packages[i].split('.').join('/') + '.js');
-        packageArr.push(settings.packages[i].split('/').join('.'));
-        settings.packages[i] = settings.baseUrl + '/' + settings.packages[i]; //Must prefix the baseUrl
+      for(i = 0; i < options.packages.length; i++) {
+        filesArr.push(options.baseUrl + '/' + options.packages[i].split('.').join('/') + '.js');
+        packageArr.push(options.packages[i].split('/').join('.'));
+        options.packages[i] = options.baseUrl + '/' + options.packages[i]; //Must prefix the baseUrl
         self._debug('Converted file path to package: ', filePathBuffer + '/' + obj[key], self._dependencies.packages[i]);
       }
     }
 
-    if (settings.entryPoint) {
+    if (options.entryPoint) {
       //Inject the entry point into the files list
-      filesArr.push(settings.baseUrl + '/' + settings.entryPoint.split(':')[0].split('.').join('/') + '.js');
-      packageArr.push(settings.entryPoint.split(':')[0].split('/').join('.'));
-      self._debug('Entry point set: ', settings.entryPoint.split(':')[0].split('/').join('.'));
+      filesArr.push(options.baseUrl + '/' + options.entryPoint.split(':')[0].split('.').join('/') + '.js');
+      packageArr.push(options.entryPoint.split(':')[0].split('/').join('.'));
+      self._debug('Entry point set: ', options.entryPoint.split(':')[0].split('/').join('.'));
     }
 
     //Hash package names so we don't attempt to load duplicates during dependency loading
@@ -214,26 +220,31 @@ var ImportJS = (function () {
     //To be called upon success or failure
     var finish = function (success) {
       if (success) {
-        if (settings.autocompile) {
+        if (options.autocompile) {
           self.compile();
         }
-        if (settings.entryPoint) {
+        if (options.entryPoint) {
           //We will perform 
-          var pkg = self.unpack(settings.entryPoint.split('/').join('.'));
-          var commands = settings.entryPoint.split(':');
+          var commands = options.entryPoint.split(':');
+          var pkg = self.unpack(commands[0].split('/').join('.'));
           if (commands.length > 1) {
             self._main = pkg;
-            pkg[commands[1]](); //Run a static function from the module specified by package:command
+            if (commands[1] === 'new') {
+              self._main = new pkg(); 
+            } else {
+              self._main = pkg;
+              pkg[commands[1]](); //Run a static function from the module specified by package:command
+            }
           } else {
-            self._main = new pkg(); //Default behavior assumes you want to decleare "new PackageName()"
+            self._main = pkg; //Default behavior assumes you want to return a static package object
           }
         }
-        if (typeof settings.ready === 'function') {
-          settings.ready(loadedFiles);
+        if (typeof options.ready === 'function') {
+          options.ready(loadedFiles);
         }
       } else {
-        if (typeof settings.error === 'function') {
-          settings.error(erroredFiles);
+        if (typeof options.error === 'function') {
+          options.error(erroredFiles);
         }
       }
     };
@@ -250,7 +261,7 @@ var ImportJS = (function () {
         if (!dependencyHash[self._dependencies.packages[i]]) {
           dependencyHash[self._dependencies.packages[i]] = true;
           //This is a dependency that has been prepeared but not yet loaded
-          filesArr.push(settings.baseUrl + '/' + self._dependencies.packages[i].split('.').join('/') + '.js');
+          filesArr.push(options.baseUrl + '/' + self._dependencies.packages[i].split('.').join('/') + '.js');
           packageArr.push(self._dependencies.packages[i]);
           loadScript(filesArr[i], packageArr[i]);
           self._debug('Now loading dependency: ', self._dependencies.packages[i]);
@@ -269,14 +280,16 @@ var ImportJS = (function () {
               self._debug('Finished loading plugin: ' + name);
               //The plugin has successsfully loaded and been compiled
               loadedPlugins.push(name);
-              self._proxy = _contextStack.pop(); //Put back the previous reference
+              self._proxy = self._contextStack.pop(); //Put back the previous reference
               if(loadedPlugins.length >= self._dependencies.plugins.length) {
                 finish(true); //Trigger finish event, all plugins loaded
                 self._debug('Plugin batch load completed.');
+              } else {
+                nextPlugin();
               }
             };
             return function (files) {
-              whenPluginReady(name, files)
+              whenPluginReady(name, files);
             }
           };
           var errorWrapper = function (name) {
@@ -284,40 +297,41 @@ var ImportJS = (function () {
               self._debug('Error loading plugin: ' + name);
               //Some problem loading the plugin
               erroredPlugins.push(name);
-              self._proxy = _contextStack.pop(); //Put back the previous reference
+              self._proxy = self._contextStack.pop(); //Put back the previous reference
               finish(false);
               self._debug('Plugin batch load failed.');
             };
             return function (files) {
-              whenPluginError(name, files)
+              whenPluginError(name, files);
             };
           }
-          //Trigger loading on all the plugins and wait for loadedPlugins.length >= plugin dependency length
-          for (var i = 0; i < self._dependencies.plugins.length; i++) {
+          var nextPlugin = function () {
             //Create a new instance of ImportJS for each plugin
-            var pluginName = self._dependencies.plugins[i];
-            self._debug('Preparing to load plugin ' + pluginName);
-            _contextStack.push(ImportJS);
-            self._proxy = new ImportJSBase(self._settings);
+            var pluginName = self._dependencies.plugins[loadedPlugins.length]; //<-Length of loaded plugins can tell us what plugin to load next
+            self._debug('Preparing to load plugin ' + options.baseUrl + '/plugins/' + pluginName);
+            self._contextStack.push(ImportJS);
+            self._proxy = new ImportJSBase(self._options);
             self._map.plugins[pluginName] = self._proxy;
 
             self._proxy.preload({
-              baseUrl: settings.baseUrl + '/plugins/' + pluginName,
-              removeTags: settings.removeTags,
+              baseUrl: options.baseUrl + '/plugins/' + pluginName,
+              removeTags: options.removeTags,
               strict: false,
-              timeout: settings.timeout,
+              timeout: options.timeout,
               autocompile: true,
               entryPoint: pluginName,
               ready: readyWrapper(pluginName),
               error: errorWrapper(pluginName)
             });
-          }
+          };
+          //Start loading
+          nextPlugin();
     };
 
     //To be called once a script path is provided
     var loadScript = function(filePath, clsPath) {
       //Specific handling for node.js (We will merely require() the module, and store its exported value inside of ImportJS)
-      if (settings.require) {
+      if (options.require) {
         try {
           //Make sure there is a dot or slash so we don't dig into node_modules folder
           if (filePath.charAt(0) !== '/' && filePath.charAt(0) !== '.') {
@@ -325,11 +339,11 @@ var ImportJS = (function () {
           }
           
           //Require the source and pack it into ImportJS
-          var source = settings.require(filePath);
+          var source = options.require(filePath);
           self._debug('Successfully required source file: ' + filePath);
           
           //Throw error in strict mode if class name doesn't match the definition inside the file
-          if (clsPath && settings.strict) {
+          if (clsPath && options.strict) {
             if (!self.hasPackage(clsPath)) {
               throw new Error("ImportJS Error: Invalid or missing package definition for " + clsPath + " (using strict)");
             }
@@ -345,10 +359,11 @@ var ImportJS = (function () {
           return;
         }
         //Re-check dependencies
-        _flushPackBuffer();
+        self._flushPackBuffer();
         queueDependencies();
 
         if (loadedFiles.length === filesArr.length + libsArr.length) {
+          self._debug('Finished loading self dependencies');
           //For plugin dependencies
           if (self._dependencies.plugins.length <= 0) {
             self._debug('No plugins found.');
@@ -369,12 +384,12 @@ var ImportJS = (function () {
 
       //Function to be run each time a script is loaded
       var loadFunc = function () {
-        if (settings.removeTags)
+        if (options.removeTags)
           head.removeChild(script);
         done = true;
         clearTimeout(timeout);
         //If clsPath provided and strict mode is on (no clsPath for libs)
-        if (clsPath && settings.strict) {
+        if (clsPath && options.strict) {
           if (!self.hasPackage(clsPath)) {
             throw new Error("ImportJS Error: Invalid or missing package definition for " + clsPath + " (using strict)");
           }
@@ -382,10 +397,11 @@ var ImportJS = (function () {
         loadedFiles.push(filePath);
 
         //Must update dependencies list
-        _flushPackBuffer();
+        self._flushPackBuffer();
         queueDependencies();
 
         if (loadedFiles.length === filesArr.length + libsArr.length) {
+          self._debug('Finished loading self dependencies');
           //For plugin dependencies
           if (self._dependencies.plugins.length <= 0) {
             //Safe to return/compile now, no plugins
@@ -398,7 +414,7 @@ var ImportJS = (function () {
       };
       //Function to be run when something goes wrong
       var errorFunc = function() {
-        if (settings.removeTags)
+        if (options.removeTags)
           head.removeChild(script);
 
         //Append to errored file list and clear the timer
@@ -416,7 +432,7 @@ var ImportJS = (function () {
       timeout = setTimeout(function() { 
         self._debug("Error: Timed out on file: " + filePath);
         errorFunc();
-      }, settings.timeout);
+      }, options.timeout);
 
       //Prep the script load detection
       script.onreadystatechange = function () {
@@ -440,14 +456,14 @@ var ImportJS = (function () {
     //Start with the libs (if there are any)
     if (libsArr.length > 0) {
       var currentLib = 0;
-      //Create new preload job using hard-coded settings to ensure load order (inherits original settings)
+      //Create new preload job using hard-coded options to ensure load order (inherits original options)
       var loadChainer = function(file, success, fail) {
         self._debug("Loading library: " + file);
         self.preload({
-          baseUrl: settings.baseUrl,
-          removeTags: settings.removeTags,
+          baseUrl: options.baseUrl,
+          removeTags: options.removeTags,
           strict: false,
-          timeout: settings.timeout,
+          timeout: options.timeout,
           autocompile: false,
           packages: [file], //Only pass in the one file provided
           ready: success,
@@ -462,8 +478,8 @@ var ImportJS = (function () {
           loadChainer(libsArr[currentLib++], success, fail); //Chain load next script
         }  else if (filesArr.length <= 0) {
           //No other files to load
-          if (typeof settings.ready === 'function')
-            settings.ready(loadedFiles);
+          if (typeof options.ready === 'function')
+            options.ready(loadedFiles);
         } else {
           //Begin loading scripts from filesArr
           loadPackageScripts();
