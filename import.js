@@ -90,17 +90,21 @@ var ImportJS = (function () {
     var pkg = this._map.packages[id];
     if (!pkg) {
       throw new Error('Error, package ' + id + ' does not exist.');
-    } else if (pkg.cache) {
+    } else if (pkg.cache && pkg.compiled) {
       return pkg.cache.exports; //Already compiled
     } else {
       var bound = { 
         import: function (id) { return self.unpack.call(self, id); },
         plugin: function (id) { return self.plugin.call(self, id); } 
       };
-      //Create an empty module to populate;
-      pkg.cache = { exports: {}, postCompile: null };
+      //Create an empty module to populate (or keep the current if it was created already which can happen in a circular import)
+      pkg.cache = pkg.cache || { exports: {}, postCompile: null, compiled: false };
+      
       //Compile the module and store inside the cache
       pkg.src.call(bound, pkg.cache, pkg.cache.exports); // i.e. module: { exports: function() {} }
+
+      //Signify this package is ready to be unpacked by other classes now that module is available
+      pkg.compiled = true;
 
       //Run post-compilation func
       if(pkg.cache.postCompile)
