@@ -1,7 +1,7 @@
 var ImportJS = (function () {
   var ImportJSBase = function (settings) {
     settings = settings || {};
-    //This describes a single instance of ImportJS under a unqique context
+    //This describes a single instance of ImportJS under a unique context
     this._settings =  { debug: settings.debug || false};
     this._map = {
       packages: {}, //A map of package IDs to source function
@@ -74,7 +74,7 @@ var ImportJS = (function () {
     }
     if (!this._map.packages[id]) {
       this._dependencies.packages.push(id); //Consider this own package a dependency for the ImportJSBase instance
-      this._map.packages[id] = { instance: this, src: cls, cache: null }; //Create a reference in the map for the package
+      this._map.packages[id] = { instance: this, src: cls, cache: null, compiled: false }; //Create a reference in the map for the package
       this._packBuffer.push(this._map.packages[id]); //Push this module into the package buffer to be parsed and flushed later
     }
   };
@@ -98,7 +98,7 @@ var ImportJS = (function () {
         plugin: function (id) { return self.plugin.call(self, id); } 
       };
       //Create an empty module to populate (or keep the current if it was created already which can happen in a circular import)
-      pkg.cache = pkg.cache || { exports: {}, postCompile: null, compiled: false };
+      pkg.cache = pkg.cache || { exports: {}, postCompile: null };
       
       //Compile the module and store inside the cache
       pkg.src.call(bound, pkg.cache, pkg.cache.exports); // i.e. module: { exports: function() {} }
