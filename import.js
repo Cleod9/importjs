@@ -74,7 +74,7 @@ var ImportJS = (function () {
     }
     if (!this._map.packages[id]) {
       this._dependencies.packages.push(id); //Consider this own package a dependency for the ImportJSBase instance
-      this._map.packages[id] = { instance: this, src: cls, cache: null, compiled: false }; //Create a reference in the map for the package
+      this._map.packages[id] = { instance: this, src: cls, cache: null, binding: null, compiled: false, completed: false }; //Create a reference in the map for the package
       this._packBuffer.push(this._map.packages[id]); //Push this module into the package buffer to be parsed and flushed later
     }
   };
@@ -90,10 +90,15 @@ var ImportJS = (function () {
     var pkg = this._map.packages[id];
     if (!pkg) {
       throw new Error('Error, package ' + id + ' does not exist.');
-    } else if (pkg.cache && pkg.compiled) {
-      return pkg.cache.exports; //Already compiled
+    } else if (pkg.cache) {
+      if (!pkg.compiled) {
+        throw new Error('Error, package ' + id + ' has not yet been compiled.');
+        return null; //Pre-mature unpack
+      } else {
+        return pkg.cache.exports; //Already compiled
+      }
     } else {
-      var bound = { 
+      var binding = { 
         import: function (id) { return self.unpack.call(self, id); },
         plugin: function (id) { return self.plugin.call(self, id); } 
       };
@@ -101,14 +106,11 @@ var ImportJS = (function () {
       pkg.cache = pkg.cache || { exports: {}, postCompile: null };
       
       //Compile the module and store inside the cache
-      pkg.src.call(bound, pkg.cache, pkg.cache.exports); // i.e. module: { exports: function() {} }
+      pkg.src.call(binding, pkg.cache, pkg.cache.exports); // i.e. module: { exports: function() {} }
 
       //Signify this package is ready to be unpacked by other classes now that module is available
       pkg.compiled = true;
-
-      //Run post-compilation func
-      if(pkg.cache.postCompile)
-        pkg.cache.postCompile.call(bound);
+      pkg.binding = binding;
 
       //Return exports
       return pkg.cache.exports;
@@ -124,10 +126,20 @@ var ImportJS = (function () {
     }
   };
   ImportJSBase.prototype.compile = function () {
-    var i;
+    var i, j;
     //Compile all packages
-    for (i = 0; i < this._dependencies.packages; i++) {
+    for (i = 0; i < this._dependencies.packages.length; i++) {
       this.unpack(this._dependencies.packages[i]);
+    }
+    //Run post-compilation functions
+    for (i = 0; i < this._dependencies.packages.length; i++) {
+      j = this._dependencies.packages[i];
+      if (this._map.packages[j].cache.postCompile && !this._map.packages[j].completed) {
+        this._map.packages[j].completed = true;
+        this._map.packages[j].cache.postCompile.call(this._map.packages[j].binding);
+      } else {
+        this._map.packages[j].completed = true;
+      }
     }
   };
   ImportJSBase.prototype.preload = function (params) {
