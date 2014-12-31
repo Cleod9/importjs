@@ -1,6 +1,9 @@
 ImportJS.pack('inheritance.Child', function(module) {
 	//Child object test (Unpacking Parent will force it to compile immediately)
 	var Parent = ImportJS.unpack('inheritance.Parent');
+  this.inject(function () { 
+    //Import additional items you want here, but of course first create the corresponding variable references in the outer scope
+  });
 	
 	function Child() { }
 
@@ -13,7 +16,4 @@ ImportJS.pack('inheritance.Child', function(module) {
 
 	//Expose Child via module.exports
 	module.exports = Child;
-	module.postCompile = function() { 
-		//Import additional items you want here, but of course first create the corresponding variable references in the outer scope
-	};
 });

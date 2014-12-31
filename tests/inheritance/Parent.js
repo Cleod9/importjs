@@ -1,4 +1,7 @@
 ImportJS.pack('inheritance.Parent', function(module) {
+  this.inject(function () { 
+    //Import additional packages you want here, but of course first create the corresponding variable references in the outer scope
+  });
 	//Parent object test
 	function Parent() {
 		this.sharedValue = 42;
@@ -9,7 +12,4 @@ ImportJS.pack('inheritance.Parent', function(module) {
 	
 	//Expose Parent via module.exports
 	module.exports = Parent;
-	module.postCompile = function() { 
-		//Import additional packages you want here, but of course first create the corresponding variable references in the outer scope
-	};
 });

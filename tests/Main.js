@@ -6,8 +6,8 @@ ImportJS.pack('Main', function(module) {
   //Internal Project dependencies
 	var Parent = this.import('inheritance.Parent');
 	var Child = this.import('inheritance.Child');
-	var CircularRefA = this.import('circular.CircularRefA');
-	var CircularRefB = this.import('circular.CircularRefB');
+	var CircularDepA = this.import('circular.CircularDepA');
+	var CircularDepB = this.import('circular.CircularDepB');
 	var Simple = this.import('Simple');
 
   //External Plugins
@@ -23,8 +23,8 @@ ImportJS.pack('Main', function(module) {
 		
 		var myParentClass = new Parent();
 		var myChildClass = new Child();
-		var myCircRefA = new CircularRefA();
-		var myCircRefB = new CircularRefB();
+		var myCircDepA = new CircularDepA();
+		var myCircDepB = new CircularDepB();
 		var mySimpleClass = new Simple();
 
 		print("\n<b>Begin preloaded test...</b>\n");
@@ -33,10 +33,10 @@ ImportJS.pack('Main', function(module) {
 		print("Value of myChildClass.foo() = " + myChildClass.foo() + "\n");
 		print("Value of myParentClass.sharedValue = " + myParentClass.sharedValue + "\n");
 		print("Value of myChildClass.sharedValue = " + myChildClass.sharedValue + "\n");
-		print("Value of myCircRefA.toString() = " + myCircRefA.toString() + "\n");
-		print("Value of myCircRefB.toString() = " + myCircRefB.toString() + "\n");
-		print("Value of myCircRefA.getCircRefB() = " + myCircRefB.toString() + "\n");
-		print("Value of myCircRefB.getCircRefA() = " + myCircRefA.toString() + "\n");
+		print("Value of myCircDepA.toString() = " + myCircDepA.toString() + "\n");
+		print("Value of myCircDepB.toString() = " + myCircDepB.toString() + "\n");
+		print("Value of myCircDepA.getCircDepB() = " + myCircDepA.getCircDepB().toString() + "\n");
+		print("Value of myCircDepB.getCircDepA() = " + myCircDepB.getCircDepA().toString() + "\n");
 		print("Value of mySimpleClass.toString() = " + mySimpleClass.toString() + "\n");
 		
 

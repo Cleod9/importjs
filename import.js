@@ -1,27 +1,89 @@
 var ImportJS = (function () {
+
+  //The Package class represents a single "module" of code which is later to be compiled
+  var ImportJSPackage = function (id, instance, src) {
+    this.id  = id;
+    this.instance = instance;
+    this.src = src;
+    this.compiled = false;
+    this.completed = false;
+  };
+  //String identifier for the package
+  ImportJSPackage.prototype.id = null;
+  //ImportJSBase reference for the package
+  ImportJSPackage.prototype.instance = null;
+  //Source code function for the package
+  ImportJSPackage.prototype.src = null;
+  //Cached return value from the executed source code
+  ImportJSPackage.prototype.cache = null;
+  //ImportJSContext Reference
+  ImportJSPackage.prototype.context = null;
+  //Injector function that will be run after the compilation step
+  ImportJSPackage.prototype.injector = null;
+  //Whether or not the package has been compiled yet
+  ImportJSPackage.prototype.compiled = false;
+  //Whether or not the package's post-compilation function (injector) has been run yet
+  ImportJSPackage.prototype.completed = false;
+
+  //The Context class acts as the "this" object for a package, containing several utilities
+  var ImportJSContext = function (pkg) {
+    this.pkg = pkg;
+  };
+  //References the package 
+  ImportJSContext.prototype.pkg = null; 
+  //Proxies import initialization for this ImportJSBase instance
+  ImportJSContext.prototype.import = function (id) {
+    return this.pkg.instance.unpack.call(this.pkg.instance, id);
+  };
+  //Proxies plugin initialization for this ImportJSBase instance
+  ImportJSContext.prototype.plugin = function (id) {
+    return this.pkg.instance.plugin.call(this.pkg.instance, id); 
+  };
+  //Assigns an injector function to be run during post-compilation of packages
+  ImportJSContext.prototype.inject = function (fn) {
+    //Only accept functions as injectors
+    if (typeof fn === 'function') {
+      this.pkg.injector = fn;
+    }
+  };
+
+  //Describes a single instance of ImportJS under a unique context. Plugins have a unique ImportJSBase object from the main application.
   var ImportJSBase = function (settings) {
     settings = settings || {};
-    //This describes a single instance of ImportJS under a unique context
+
+    //Contains configuration options for ImportJS. Only current setting is for console debug output
     this._settings =  { debug: settings.debug || false};
+
+    //A hash map that contains a key for a plugins hash and another key for a normal packages hash.
     this._map = {
-      packages: {}, //A map of package IDs to source function
-      plugins: {} //A map of plugin IDs to ImportJS instances
+      packages: {}, //A map of package IDs to ImportJSPackage instances
+      plugins: {} //A map of plugin IDs to ImportJSPackage instances
     };
 
+    //A hash map similar to _map for faster enumeration of ImportJSPackage instances; it contains string array for package and plugin IDs
     this._dependencies = {
-      packages: [], //A list of dependency IDs (for convenience)
-      plugins: [] //A list of dependency plugin IDs (for convenience)
+      packages: [], //A list of dependency ID strings (for convenience)
+      plugins: [] //A list of dependency plugin IDs strings (for convenience)
     };
 
-    //ImportJS root reference will be overridden for each plugin, so we track the original references here
-    this._contextStack = [];
-
+    //Used when defining an entry point for the application via the preload() function
+    this._main = null;
+    //Acts as a proxy to the appropriate ImportJSBase instance, which can change as various plugins are imported
+    this._proxy = null;
+    //Keeps track of the current ImportJSBase instance that is being proxied. ImportJS root reference will be overridden for each plugin.
+    this._proxyStack = [];
     //Temporarily holds onto newly added packages so that we can parse their dependencies
     this._packBuffer = [];
   };
 
-  //Set up instance variables first
-  ImportJSBase.prototype = { _settings: null, _map: null, _dependencies: null, _main: null, _proxy: null, _contextStack: null, _packBuffer: null };
+  ImportJSBase.prototype._settings = null;
+  ImportJSBase.prototype._map = null;
+  ImportJSBase.prototype._dependencies = null;
+  ImportJSBase.prototype._main = null;
+  ImportJSBase.prototype._proxy = null;
+  ImportJSBase.prototype._proxyStack = null;
+  ImportJSBase.prototype._packBuffer = null;
+
 
   //Helper method for parsing the source text dependencies
   var _grabDependencies = function (instance, sourceText) {
@@ -34,7 +96,7 @@ var ImportJS = (function () {
     for (i = 0; i < sourceImports.length; i++) {
       pkgName = sourceImports[i].replace(iregex, '$1');
       if (typeof instance._map.packages[pkgName] === 'undefined') {
-        instance._debug('Registed package dependency through regex: ' + pkgName);
+        instance._debug('Registered package dependency through regex: ' + pkgName);
         instance._map.packages[pkgName] = null; //Create the empty reference so we don't push a second time
         instance._dependencies.packages.push(pkgName); //Push into dependency list
       }
@@ -42,7 +104,7 @@ var ImportJS = (function () {
     for (i = 0; i < sourcePlugins.length; i++) {
       pkgName = sourcePlugins[i].replace(pregex, '$1');
       if (typeof instance._map.plugins[pkgName] === 'undefined') {
-        instance._debug('Registed plugin dependency through regex: ' + pkgName);
+        instance._debug('Registered plugin dependency through regex: ' + pkgName);
         instance._map.plugins[pkgName] = null; //Create the empty reference so we don't push a second time
         instance._dependencies.plugins.push(pkgName); //Push into dependency list
       }
@@ -74,7 +136,7 @@ var ImportJS = (function () {
     }
     if (!this._map.packages[id]) {
       this._dependencies.packages.push(id); //Consider this own package a dependency for the ImportJSBase instance
-      this._map.packages[id] = { instance: this, src: cls, cache: null, binding: null, compiled: false, completed: false }; //Create a reference in the map for the package
+      this._map.packages[id] = new ImportJSPackage(id, this, cls); //Create a reference in the map for the package
       this._packBuffer.push(this._map.packages[id]); //Push this module into the package buffer to be parsed and flushed later
     }
   };
@@ -98,19 +160,18 @@ var ImportJS = (function () {
         return pkg.cache.exports; //Already compiled
       }
     } else {
-      var binding = { 
-        import: function (id) { return self.unpack.call(self, id); },
-        plugin: function (id) { return self.plugin.call(self, id); } 
-      };
+      var context = new ImportJSContext(pkg);
       //Create an empty module to populate (or keep the current if it was created already which can happen in a circular import)
-      pkg.cache = pkg.cache || { exports: {}, postCompile: null };
+      pkg.cache = pkg.cache || { exports: {} };
       
       //Compile the module and store inside the cache
-      pkg.src.call(binding, pkg.cache, pkg.cache.exports); // i.e. module: { exports: function() {} }
+      pkg.src.call(context, pkg.cache, pkg.cache.exports); // i.e. module: { exports: function() {} }
 
       //Signify this package is ready to be unpacked by other classes now that module is available
       pkg.compiled = true;
-      pkg.binding = binding;
+
+      //Store the context for use by the injector function later
+      pkg.context = context;
 
       //Return exports
       return pkg.cache.exports;
@@ -134,9 +195,9 @@ var ImportJS = (function () {
     //Run post-compilation functions
     for (i = 0; i < this._dependencies.packages.length; i++) {
       j = this._dependencies.packages[i];
-      if (this._map.packages[j].cache.postCompile && !this._map.packages[j].completed) {
+      if (this._map.packages[j].injector && !this._map.packages[j].completed) {
         this._map.packages[j].completed = true;
-        this._map.packages[j].cache.postCompile.call(this._map.packages[j].binding);
+        this._map.packages[j].injector.call(this._map.packages[j].context);
       } else {
         this._map.packages[j].completed = true;
       }
@@ -296,7 +357,7 @@ var ImportJS = (function () {
               self._debug('Finished loading plugin: ' + name);
               //The plugin has successsfully loaded and been compiled
               loadedPlugins.push(name);
-              self._proxy = self._contextStack.pop(); //Put back the previous reference
+              self._proxy = self._proxyStack.pop(); //Put back the previous reference
               if(loadedPlugins.length >= self._dependencies.plugins.length) {
                 finish(true); //Trigger finish event, all plugins loaded
                 self._debug('Plugin batch load completed.');
@@ -313,7 +374,7 @@ var ImportJS = (function () {
               self._debug('Error loading plugin: ' + name);
               //Some problem loading the plugin
               erroredPlugins.push(name);
-              self._proxy = self._contextStack.pop(); //Put back the previous reference
+              self._proxy = self._proxyStack.pop(); //Put back the previous reference
               finish(false);
               self._debug('Plugin batch load failed.');
             };
@@ -325,8 +386,8 @@ var ImportJS = (function () {
             //Create a new instance of ImportJS for each plugin
             var pluginName = self._dependencies.plugins[loadedPlugins.length]; //<-Length of loaded plugins can tell us what plugin to load next
             self._debug('Preparing to load plugin ' + options.baseUrl + '/plugins/' + pluginName);
-            self._contextStack.push(ImportJS);
-            self._proxy = new ImportJSBase(self._options);
+            self._proxyStack.push(ImportJS);
+            self._proxy = new ImportJSBase(self._settings);
             self._map.plugins[pluginName] = self._proxy;
 
             self._proxy.preload({
