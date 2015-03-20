@@ -67,6 +67,8 @@ Use `ImportJS.preload(options)` to load in your JavaScript files. The `options` 
 
 `packages` - Object or Array of file paths. These paths are relative to `baseUrl`. It is recommended not to use absolute urls or parent directories here, since they will affect `strict` mode (see `strict` option below). Providing an Array  is easiest, since you simply provide a list of relative URLs (although load order will not be guaranteed). ImportJS will assume these paths match the package structure you set up, minus the ".js" extension of the file, and throw an error if there is an inconsistency. So for example, if you provide the path "com/main.js", ImportJS will expect that file to have a script inside that says `ImportJS.pack('com.main')`. (Set the `strict` option to false disable this feature). Providing an Object to this property is a little different. The object keys describe the path, and the object values describe files and directories. So for example, providing the object `{ com: { main: 'main.js' } }` would result in the same package build-out as above.  (Default = [])
 
+`plugins` - Array of plugin names to be loaded by ImportJS. By default it is not necessary to use this field since ImportJS will regex your packages source text to discover any plugins. As such, plugins are always loaded after your application's main dependencies but are compiled before your application code begins execution. (Default = [])
+
 `ready(files)` - A callback Function that triggers once all files are loaded. ImportJS passes a list of the files that were loaded as an argument. (Default = null)
 
 `error(files)` - A callback Function that triggers if there is a problem loading one or more files. ImportJS passes a list of the files that couldn't be loaded as an argument.  (Default = null)
@@ -79,7 +81,11 @@ Use `ImportJS.preload(options)` to load in your JavaScript files. The `options` 
 
 `libs` - Array of URLs/paths pointing to other libraries you would like to load prior to loading your packages. These files will not be under watch by the `strict` parameter, and will load in the order supplied. (Default = [])
 
-`autocompile` - Automatically "compile" the packages you have created. Packages cannot and will not be compiled more than once, and attempting to unpack an uncompiled package will automatically compile it. The main reason you would disable this option is if you wanted to delay the compilation further due to some dependency that must be packed after the load completes.  (Default = true).
+`autoCompile` - Automatically "compile" the packages you have created. Packages cannot and will not be compiled more than once, and attempting to unpack an uncompiled package will automatically compile it. The main reason you would disable this option is if you wanted to delay the compilation further due to some dependency that must be packed after the load completes.  (Default = true).
+
+`entryPoint` - You can define a package name string to be the entry point of the application. Use the format `entry.point.path:[action]`, where `[action]` can be substituted with either the word `new` to automatically call `new package()` assuming it exports a function, or you can write a function name exposed by the package to be executed. For example, `entryPoint: "path.to.main:new"` would call the `new` operator on the returned export from the the class defined in  `path.to.main`. If you wrote `entryPoint: "path.to.main:init"` it would instead call the `init()` function exposed by the class defined in `path.to.main`.    (Default = null).
+
+
 
 ### Creating a Package ###
 

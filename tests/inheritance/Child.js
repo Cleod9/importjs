@@ -11,7 +11,7 @@ ImportJS.pack('inheritance.Child', function(module) {
 	
 	//Override foo
 	Child.prototype.foo = function() {
-		return 'I am child. My sharedValue value is ' + this.sharedValue;
+		return 'I am child. My inheritedValue value is ' + this.inheritedValue;
 	};
 
 	//Expose Child via module.exports

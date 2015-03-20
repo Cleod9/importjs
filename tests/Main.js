@@ -31,8 +31,8 @@ ImportJS.pack('Main', function(module) {
     
 		print("Value of myParentClass.foo() = " + myParentClass.foo() + "\n");
 		print("Value of myChildClass.foo() = " + myChildClass.foo() + "\n");
-		print("Value of myParentClass.sharedValue = " + myParentClass.sharedValue + "\n");
-		print("Value of myChildClass.sharedValue = " + myChildClass.sharedValue + "\n");
+		print("Value of myParentClass.inheritedValue = " + myParentClass.inheritedValue + "\n");
+		print("Value of myChildClass.inheritedValue = " + myChildClass.inheritedValue + "\n");
 		print("Value of myCircDepA.toString() = " + myCircDepA.toString() + "\n");
 		print("Value of myCircDepB.toString() = " + myCircDepB.toString() + "\n");
 		print("Value of myCircDepA.getCircDepB() = " + myCircDepA.getCircDepB().toString() + "\n");

@@ -4,9 +4,9 @@ ImportJS.pack('inheritance.Parent', function(module) {
   });
 	//Parent object test
 	function Parent() {
-		this.sharedValue = 42;
+		this.inheritedValue = 42;
 		this.foo = function() {
-			return 'I am parent. My sharedValue is ' + this.sharedValue;
+			return 'I am parent. My inheritedValue is ' + this.inheritedValue;
 		}
 	}
 	
