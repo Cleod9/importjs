@@ -310,14 +310,51 @@ console.log(kid1.toString()); //Prints "I am child!!"
 console.log(kid2.toString()); //Prints "I am child!!"
 ```
 
+## How does this differ from AMD and CommonJS? ##
+
+ImportJS attempts to solve the same problem as AMD and CommonJS with a slightly different approach. I'll briefly go over these differences below.
+
+**AMD/RequireJS:**
+
+Rather than focusing on loading dependencies asynchronously, ImportJS's main goal is to provide an easier way to organize your code and be confident that dependencies are available at runtime regardless of how they were loaded. One of the big issues with RequireJS is that it's original design was to allow asynchronously loading external JavaScript modules that are separated across many files. But in a large JavaScript application most of these files are eventually concatenated into a single build anyway, which necessitates extra tooling with RequireJS. With ImportJS you simply organize your code into modules and it doesn't matter what module is in which file, or whether the files were loaded asynchronously or not. All that matters is that once all of your dependencies are loaded, that your application can successfully start. This gives you a lot more flexibility in how you want to enforce your code structure.
+
+**CommonJS/Node.js:**
+
+ImportJS actually resembles CommonJS in many ways, in that it also includes the "module.exports" concept. The major difference however is that ImportJS uses a special function wrapper around your code. But don't fret! The function wrapper is easy on the eye and doesn't require much additional text. ImportJS can also act as a substitute for Node's `require()` if you really wanted, although it's primary focus is the browser environment.
+
+The most obvious way to demonstrate the main difference between ImportJS and other approaches is how ImportJS handle **circular dependencies**:
+
+```javascript
+ImportJS.pack('CircDepA', function (module, exports) {
+	var CircDepB;	
+	this.inject(function () {
+		CircDepB = this.import('CircDepB');
+	});
+
+	exports.getCircDepB = function () { return CircDepB; };
+
+});
+ImportJS.pack('CircDepB', function (module, exports) {
+	var CircDepA;	
+	this.inject(function () {
+		CircDepA = this.import('CircDepA');
+	});
+
+	exports.getCircDepA = function () { return CircDepA; };
+});
+ImportJS.compile();
+var CircDepA = ImportJS.unpack('CircDepA');
+var CircDepB = ImportJS.unpack('CircDepB');
+//Both will return valid objects
+console.log(CircDepA.getCircDepB());
+console.log(CircDepB.getCircDepA());
+```
+
+I call this technique **deferred dependency injection**. It demonstrates how easily you could simplify circular dependency usage without appearing as "hacky" as other libraries. Of course these types of dependencies are not best practice, but I think this mechanism can save a lot of time in the rare case where you might want to use it.
 
 ## Further Examples ##
 
 Check out `demo.htm` and `import-demo.js` to see the code in action. The demo utilizes the code under the `/tests` folder to demonstrate preloading packages using the recommended package structure .
-
-## Terms of Use ##
-
-Free to use in any projects without notifying me, nor is credit needed (though it'd be much appreciated!). Just do not re-distribute it under anyone else's name and be sure to retain the copyright notice in the source!
 
 ## Recent Version History ##
 
