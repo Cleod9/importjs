@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013 Greg McLeod  (Email: cleod9{at}gmail.com)
+Copyright (c) 2015 Greg McLeod  (Email: cleod9{at}gmail.com)
 
 The below code demonstrates how to use ImportJS.
 

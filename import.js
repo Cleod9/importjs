@@ -239,7 +239,7 @@ var ImportJS = (function () {
       ready: params.ready || null,  //Ready callback
       error: params.error || null, //Error callback
       removeTags: (params.removeTags === false) ? false : true, //Remove generated from head as they are loaded
-      strict: (params.strict === false) ? false : true, //Strictly verify package existence upon load
+      strict: (params.strict === true) ? true : false, //Strictly verify package existence upon load
       timeout: (params.timeout) ? params.timeout : 5000, //Amount of ms to timeout
       libs: params.libs || [], //Array of extra urls to any files you want to load outside of ImportJS (Similar to using 'files' param with strict = false)
       autoCompile: (params.autoCompile === false) ? false : true, //ImportJS will call compile() when all items have finished loading
@@ -582,8 +582,7 @@ var ImportJS = (function () {
           loadChainer(libsArr[currentLib++], success, fail); //Chain load next script
         }  else if (filesArr.length <= 0) {
           //No other files to load
-          if (typeof options.ready === 'function')
-            options.ready(loadedFiles);
+          finish(true);
         } else {
           //Begin loading scripts from filesArr
           loadPackageScripts();
