@@ -87,7 +87,7 @@ ImportJS.pack('tests.SomeDependency', function(module) {
 	module.exports = SomeDependency;
 });
 ```
-Ad now loading the code:
+And now loading the code:
 
 ```javascript 
 //Compile and resolve dependencies
@@ -106,7 +106,7 @@ console.log(myExample.dependencyRef.toString());
 //Outputs "I am Example and I have access to: [SomeDependency] and [Immediate]!!"
 console.log(myExample.dependencyRef.makeExample().toString());
 ```
-Notice the use of `inject()`? ImportJS will take advantage of the function scope in the above setup and inject `SomeDependency` into the `Example` definition by executing `inject()` once right after compilation but before it is ever retrieved via `unpack/import`. In other words, you are guaranteeing that `SomeDependency` is available for use in your function scope no matter what order these packages are loaded. Try loading ImportJS and running the above example, and you'll see that the `tests.SomeDependency` package is still able to utilize `tests.Example` regardless of load order.
+Notice the use of `inject()`? ImportJS will take advantage of the function scope in the above setup and inject `SomeDependency` into the `Example` definition by executing `inject()` right after compilation, but before it is ever retrieved via `unpack/import`. In other words, you are guaranteeing that `SomeDependency` is available for use in your function scope no matter what order these packages are loaded! Try loading ImportJS and running the above example, and you'll see that the `tests.SomeDependency` package is still able to utilize `tests.Example` regardless of load order.
 
 
 ### Global ImportJS Methods ###
@@ -318,13 +318,13 @@ ImportJS attempts to solve the same problem as AMD and CommonJS with a slightly 
 
 **AMD/RequireJS:**
 
-Rather than focusing on loading dependencies asynchronously, ImportJS's main goal is to provide an easier way to organize your code and be confident that dependencies are available at runtime regardless of how they were loaded. One of the big issues with RequireJS is that it's original design was to allow asynchronously loading external JavaScript modules that are separated across many files. But in a large JavaScript application most of these files are eventually concatenated into a single build anyway, which necessitates extra tooling with RequireJS. With ImportJS you simply organize your code into modules and it doesn't matter what module is in which file, or whether the files were loaded asynchronously or not. All that matters is that once all of your dependencies are loaded, that your application can successfully start. This gives you a lot more flexibility in how you want to enforce your code structure.
+Rather than focusing on loading dependencies asynchronously, ImportJS's main goal is to provide an easier way to organize your code and be confident that dependencies are available at runtime regardless of how they were loaded. One of the big issues with RequireJS is that it's original design was to allow asynchronously loading external JavaScript modules that are separated across many files. But in a large JavaScript application most of these files are eventually concatenated into a single build anyway, which necessitates extra tooling with RequireJS. With ImportJS you simply organize your code into modules and it doesn't matter what module is in which file, or whether the files were loaded asynchronously or not. All that matters is that once all of your dependencies are loaded, that your application can successfully start. This gives you a lot more flexibility in how you want to enforce your code structure, and ImportJS's `inject()` mechanism makes situations like [circular dependencies](http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requirejs-amd) more manageable. This simplicity also comes with much faster concatenation speed, unlike that of RequireJS's so-called "optimizer" [r.js](https://groups.google.com/forum/#!topic/requirejs/mqgTtqwvDLU) which I've had compilation speed issues with in the past.
 
 **CommonJS/Node.js:**
 
 ImportJS actually resembles CommonJS in many ways, in that it also includes the "module.exports" concept. The major difference however is that ImportJS uses a special function wrapper around your code. But don't fret! The function wrapper is easy on the eye and doesn't require much additional text. ImportJS can also act as a substitute for Node's `require()` if you really wanted, although it's primary focus is the browser environment.
 
-The most obvious way to demonstrate the main difference between ImportJS and other approaches is how ImportJS handle **circular dependencies**:
+The most obvious way to demonstrate the main difference between ImportJS and other approaches is how ImportJS handles **circular dependencies**:
 
 ```javascript
 ImportJS.pack('CircDepA', function (module, exports) {
@@ -352,7 +352,7 @@ console.log(CircDepA.getCircDepB());
 console.log(CircDepB.getCircDepA());
 ```
 
-I call this technique **deferred dependency injection**. It demonstrates how easily you could simplify circular dependency usage without appearing as "hacky" as other libraries. Of course these types of dependencies are not best practice, but I think this mechanism can save a lot of time in the rare case where you might want to use it.
+I call this technique **deferred dependency injection**. It demonstrates how easily you could simplify circular dependency usage without appearing as "hacky" as other libraries. Of course these types of dependencies are not best practice, but I think this mechanism can save a lot of headaches in the rare case where you might want to use it.
 
 ## Further Examples ##
 
