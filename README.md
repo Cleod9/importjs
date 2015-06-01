@@ -17,7 +17,8 @@ As stated above, ImportJS is built mainly for these 3 things:
 
 
 - Batch preloading external JavaScript files (with ready and error callbacks)
-- Creating modules via anonymously scoped functions represented as "[packages/classpaths](http://en.wikipedia.org/wiki/Classpath_%28Java%29)" (Keeps your "classes" out of the global scope)
+- Creating modules via anonymously scoped functions represented as "[
+- s/classpaths](http://en.wikipedia.org/wiki/Classpath_%28Java%29)" (Keeps your "classes" out of the global scope)
 - Resolving dependencies between definitions (including circular dependencies via deferred [Dependency Injection](http://en.wikipedia.org/wiki/Dependency_injection)!)
 
 The library gives you the flexibility to do all of these things at once, or just the ones you choose. The below instructions may look a little daunting at first, but trust me, once you see the code in action you'll catch on quickly. So let's get started!
@@ -31,9 +32,9 @@ First, include the ImportJS script in your `<head>` tag.
 ```
 
 
-### Creating a Package ###
+### Creating a Module ###
 
-Creating a package is done through the `ImportJS.pack()` function which acts as a wrapper for your module code. Below demonstrates how to create packages:
+Creating a module is done through the `ImportJS.pack()` function which acts as a wrapper for your module code. Below demonstrates how to create module:
 
 ```javascript 
 ImportJS.pack('tests.Example', function(module) {
@@ -55,11 +56,11 @@ ImportJS.pack('tests.Example', function(module) {
 		};
 	}
 	
-	//Set exports to 'Example', when we unpack in another package we will receive 'Example'
+	//Set exports to 'Example', when we unpack in another module we will receive 'Example'
 	module.exports = Example;
 });
 ImportJS.pack('tests.Immediate', function(module, exports) {
-	//Attach toString() to exports, when we unpack in another package we have access to toString()
+	//Attach toString() to exports, when we unpack in another module we have access to toString()
 	//(Note: This is the equivalent of writing "module.exports.toString = ...")
 	exports.toString = function() {
 		return "[Immediate]";
@@ -83,7 +84,7 @@ ImportJS.pack('tests.SomeDependency', function(module) {
 		};
 	}
 
-	//Set exports to 'SomeDependency', when we unpack in another package we will receive 'SomeDependency'
+	//Set exports to 'SomeDependency', when we unpack in another module we will receive 'SomeDependency'
 	module.exports = SomeDependency;
 });
 ```
@@ -93,7 +94,7 @@ And now loading the code:
 //Compile and resolve dependencies
 ImportJS.compile();
 
-//Pull out package and test
+//Pull out module and test
 var Example = ImportJS.unpack('tests.Example'); //Note: Unpacking a class will automatically compile it if needed ;)
 var myExample = new Example();
 
@@ -106,18 +107,18 @@ console.log(myExample.dependencyRef.toString());
 //Outputs "I am Example and I have access to: [SomeDependency] and [Immediate]!!"
 console.log(myExample.dependencyRef.makeExample().toString());
 ```
-Notice the use of `inject()`? ImportJS will take advantage of the function scope in the above setup and inject `SomeDependency` into the `Example` definition by executing `inject()` right after compilation, but before it is ever retrieved via `unpack/import`. In other words, you are guaranteeing that `SomeDependency` is available for use in your function scope no matter what order these packages are loaded! Try loading ImportJS and running the above example, and you'll see that the `tests.SomeDependency` package is still able to utilize `tests.Example` regardless of load order.
+Notice the use of `inject()`? ImportJS will take advantage of the function scope in the above setup and inject `SomeDependency` into the `Example` definition by executing `inject()` right after compilation, but before it is ever retrieved via `unpack/import`. In other words, you are guaranteeing that `SomeDependency` is available for use in your function scope no matter what order these modules are loaded! Try loading ImportJS and running the above example, and you'll see that the `tests.SomeDependency` module is still able to utilize `tests.Example` regardless of load order.
 
 
 ### Global ImportJS Methods ###
 
 (Note: All functions are accessed through the global `ImportJS` Object (e.g. `ImportJS.functionNameHere()`)
 
-`pack(id, function (module, exports) { })` - "Packs" your code definition identified by your provided case-sensitive String `id`. The second argument expects a function that accepts 2 parameters, `module` and `exports`.  **This is where your module code lives**, so for you Node.js folks this should look quite familiar. ImportJS provides an object called `module` as the first argument that contains the property called `exports` (e.g. `{ exports: {} }`). The second argument `exports` passed to the function you provide is actually a ***shortcut*** to `module.exports` for convenience purposes, therefore it is optional and may be excluded if desired. The role of the `module.exports` object in general is to let you expose methods/properties from your package to the outside world. This would usually contain a function, static object, or perhaps some other definition created by an external library.
+`pack(id, function (module, exports) { })` - "Packs" your code definition identified by your provided case-sensitive String `id`. The second argument expects a function that accepts 2 parameters, `module` and `exports`.  **This is where your module code lives**, so for you Node.js folks this should look quite familiar. ImportJS provides an object called `module` as the first argument that contains the property called `exports` (e.g. `{ exports: {} }`). The second argument `exports` passed to the function you provide is actually a ***shortcut*** to `module.exports` for convenience purposes, therefore it is optional and may be excluded if desired. The role of the `module.exports` object in general is to let you expose methods/properties from your module to the outside world. This would usually contain a function, static object, or perhaps some other definition created by an external library.
 
 `unpack(id)` - Retrieves your module that was previously packed using `pack()`, specified by the provided String `id`. **This method should only be called in the global scope of your application.** If you need to import code into a module, see `this.import` down below.
 
-`compile()` - Compiles all currently "uncompiled" code (i.e. code yet to be executed by ImportJS).  When initially "packing" code, ImportJS does not execute the code immediately. This allows you to write all of your definitions first so you can be certain all of your packages are defined. When preloading code, ImportJS can do this for you automatically. But for non-preloaded code you must call this once you've finished loading all of your packages. ImportJS will automatically try to compile packages when it encounters import/unpack on the fly, however is recommended that you compile them right away to avoid potential confusion.
+`compile()` - Compiles all currently "uncompiled" code (i.e. code yet to be executed by ImportJS).  When initially "packing" code, ImportJS does not execute the code immediately. This allows you to write all of your definitions first so you can be certain all of your modules are defined. When preloading code, ImportJS can do this for you automatically. But for non-preloaded code you must call this once you've finished loading all of your modules. ImportJS will automatically try to compile modules when it encounters import/unpack on the fly, however is recommended that you compile them right away to avoid potential confusion.
 
 `preload(options)` - Preloads files with config settings specified by the `options` Object parameter. (See "Preloading External JavaScript Files" below for details)
 
@@ -125,7 +126,7 @@ Notice the use of `inject()`? ImportJS will take advantage of the function scope
 
 ImportJS also contains a couple of internal functions that are bound to modules that you you can write within  `function (module, exports) { }` for the `pack()` function. They are as follows:
 
-`this.import(id)` - This returns the specified package String `id` just like `ImportJS.unpack`, but is guaranteed to be bound to the proper ImportJS instance. Please use this when importing packages inside of modules.
+`this.import(id)` - This returns the specified module String `id` just like `ImportJS.unpack`, but is guaranteed to be bound to the proper ImportJS instance. Please use this when importing modules from within modules.
 
 `this.inject(callback)` - This function accepts a callback function that is executed during the `compile()` step. This offer a way to achieve **deferred dependency injection** by hoisting up certain class references after the full code base has been loaded.
 
@@ -136,9 +137,9 @@ Use `ImportJS.preload(options)` to load in your JavaScript files. The `options` 
 
 `baseUrl` - Base path for the files to preload. Can be relative or absolute. (Default = '')
 
-`packages` - Object or Array of file paths. These paths are relative to `baseUrl`. It is recommended not to use absolute urls or parent directories here, since they will affect `strict` mode (see `strict` option below). Providing an Array  is easiest, since you simply provide a list of relative URLs. ImportJS will assume these paths match the package structure you set up, minus the ".js" extension of the file, and throw an error if there is an inconsistency. So for example, if you provide the path "com/main.js", ImportJS will expect that file to have a script inside that says `ImportJS.pack('com.main')`. (Set the `strict` option to `false` disable this feature). Providing an Object to this property is a little different. The object keys describe the path, and the object values describe files and directories. So for example, providing the object `{ com: { main: 'main.js' } }` would result in the same package build-out as I mentioned before.  (Default = [])
+`packages` - Object or Array of file paths. These paths are relative to `baseUrl`. It is recommended not to use absolute urls or parent directories here, since they will affect `strict` mode (see `strict` option below). Providing an Array  is easiest, since you simply provide a list of relative URLs. ImportJS will assume these paths match the file structure you set up, minus the ".js" extension of the file, and throw an error if there is an inconsistency. So for example, if you provide the path "com/main.js", ImportJS will expect that file to have a script inside that says `ImportJS.pack('com.main')`. (Set the `strict` option to `false` disable this feature). Providing an Object to this property is a little different. The object keys describe the path, and the object values describe files and directories. So for example, providing the object `{ com: { main: 'main.js' } }` would result in the same module build-out as I mentioned before.  (Default = [])
 
-`plugins` - Array of plugin names to be loaded by ImportJS. By default it is not necessary to use this field since ImportJS will regex your packages source text to discover any plugins. As such, plugins are always loaded after your application's main dependencies but are compiled before your application code begins execution. (Default = [])
+`plugins` - Array of plugin names to be loaded by ImportJS. By default it is not necessary to use this field since ImportJS will regex your module source text to discover any plugins. As such, plugins are always loaded after your application's main dependencies but are compiled before your application code begins execution. (Default = [])
 
 `ready(files)` - A callback Function that triggers once all files are loaded. ImportJS passes a list of the files that were loaded as an argument. (Default = null)
 
@@ -146,31 +147,31 @@ Use `ImportJS.preload(options)` to load in your JavaScript files. The `options` 
 
 `removeTags` - ImportJS by default will remove the `<script>` tags it generates in your `<head>`tag as files are loaded. Set to false to have them remain. (Default = true)
 
-`strict` - When set to true, ImportJS will throw an error if the file path to your package does not match the package that was imported upon load.  Set to false to disable this feature. (Default = true)
+`strict` - When set to true, ImportJS will throw an error if the file path to your module does not match the module that was imported upon load.  Set to false to disable this feature. (Default = true)
 
 `timeout` - Number of milliseconds before the preloader should timeout while loading any given file (Default: 5000)
 
-`libs` - Array of URLs/paths pointing to other libraries you would like to load prior to loading your packages. These files will not be under watch by the `strict` parameter, and will load in the order supplied. (Default = [])
+`libs` - Array of URLs/paths pointing to other libraries you would like to load prior to loading your modules. These files will not be under watch by the `strict` parameter, and will load in the order supplied. (Default = [])
 
-`autoCompile` - Automatically "compile" the packages you have loaded once all loading has been completed. Packages cannot and will not be compiled more than once, and attempting to unpack an uncompiled package will automatically compile it. The main reason you would disable this option is if you wanted to delay the compilation further due to some dependency that must be fetched after loading completes.  (Default = true).
+`autoCompile` - Automatically "compile" the modules you have loaded once all loading has been completed. Modules cannot and will not be compiled more than once, and attempting to unpack an uncompiled module will automatically compile it. The main reason you would disable this option is if you wanted to delay the compilation further due to some dependency that must be fetched after loading completes.  (Default = true).
 
-`entryPoint` - You can define a package name string to be the entry point of the application. Use the format `entry.point.path:[action]`, where `[action]` can be substituted with either the word `new` to automatically call `new package()` (assuming it exports a function), or you can write a function name exposed by the package to be executed. For example, `entryPoint: "path.to.main:new"` would call the `new` operator on the returned export from the the class defined in  `path.to.main`. If you wrote `entryPoint: "path.to.main:init"` it would instead call the  static `init()` function exposed by the class defined in `path.to.main`.    (Default = null).
+`entryPoint` - You can define a module name string to be the entry point of the application. Use the format `entry.point.ModuleName:[action]`, where `[action]` can be substituted with either the word `new` to automatically call `new ModuleName()` (assuming it exports a function), or you can write a function name exposed by the module to be executed. For example, `entryPoint: "path.to.main:new"` would call the `new` operator on the returned export from the the class defined in  `path.to.main`. If you wrote `entryPoint: "path.to.main:init"` it would instead call the  static `init()` function exposed by the class defined in `path.to.main`.    (Default = null).
 
-## Quick Note on Importing a Package ##
+## Quick Note on Importing a Module ##
 
-Importing a package is synonymous to unpacking it using `unpack()`. However it's important to distinguish how you import a package into the global namespace VS from within a module.
+Importing a module is synonymous to unpacking it using `unpack()`. However it's important to distinguish how you import a module into the global namespace VS from within a module.
 
 
-#### Import package from within a module ####
-The `this` reference from within modules exposes an `import()` function to import a package.
+#### Import module from within a module ####
+The `this` reference from within modules exposes an `import()` function to import a module.
 ```javascript
-var MyPackage1 = this.import('com.code.MyPackage1');
+var MyModule1 = this.import('com.code.MyModule1');
 ```
 
-#### Import package to the global namespace ####
-From the global namespace, you can call `ImportJS.unpack` to expose a package:
+#### Import module to the global namespace ####
+From the global namespace, you can call `ImportJS.unpack` to expose a module:
 ```javascript
-var MyPackage1 = ImportJS.unpack('com.code.MyPackage1');
+var MyModule1 = ImportJS.unpack('com.code.MyModule1');
 ```
 
 ## Plugin System ##
@@ -246,7 +247,7 @@ ImportJS.pack('tests.Simple', function(module) {
 //Can never hurt to call compile()
 ImportJS.compile();
 
-//Pull out package and test
+//Pull out module and test
 var Simple = ImportJS.unpack('tests.Simple');
 var mySimple = new Simple();
 console.log(mySimple.toString()); //Outputs "I am Simple class."
@@ -254,7 +255,7 @@ console.log(mySimple.toString()); //Outputs "I am Simple class."
 
 ### Dependencies/Inheritance with OOPS.js ###
 
-Let's do some dependency/inheritance stuff to demonstrate how the loading order of these two packages will not matter anymore thanks to ImportJS!
+Let's do some dependency/inheritance stuff to demonstrate how the loading order of these two modules will not matter anymore thanks to ImportJS!
 
 ```javascript
 //Child Module
@@ -356,7 +357,7 @@ I call this technique **deferred dependency injection**. It demonstrates how eas
 
 ## Further Examples ##
 
-Check out `demo.htm` and `import-demo.js` to see the code in action. The demo utilizes the code under the `/tests` folder to demonstrate preloading packages using the recommended package structure .
+Check out `demo.htm` and `import-demo.js` to see the code in action. The demo utilizes the code under the `/tests` folder to demonstrate preloading modules using the recommended module structure .
 
 ## Recent Version History ##
 
@@ -364,8 +365,8 @@ Check out `demo.htm` and `import-demo.js` to see the code in action. The demo ut
 
 - Overhaul of original packaging and preloading code (much cleaner read)
 - Removed `module.postCompile` and added `this.inject` which accepts a single function
-- Removed alternative import methods for consistency (please use the package id string)
-- Added `this.import` to replace the use of ImportJS global from within packages
+- Removed alternative import methods for consistency (please use the module id string)
+- Added `this.import` to replace the use of ImportJS global from within modules
 - New plugin system
 
 ----------
