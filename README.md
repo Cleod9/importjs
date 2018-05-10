@@ -2,8 +2,6 @@
 
 ----------
 
-[http://www.importjs.org](http://www.importjs.org)
-
 ImportJS is a library that enables your code to conform to a **"class packaging"** system that merges together the concepts of modules from Node.js and packages from ActionScript/Java. It also has an integrated preloading feature, so you can easily batch load your scripts and optionally build out a package tree at the same time (with easy dependency resolution!). This gives you the ability to have a hierarchical file organization, which is especially useful when you have many external code files to load. (Alternatively this library can also behave purely as an external JavaScript preloader if you don't want the extra functionality!)
 
 I've included a sample script called *import-demo.js* that demonstrates a simple way to use ImportJS, which you can view in action by checking out *demo.htm* in your web browser.
